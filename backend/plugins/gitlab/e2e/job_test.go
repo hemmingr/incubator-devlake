@@ -43,7 +43,7 @@ func TestGitlabJobDataFlow(t *testing.T) {
 		RegexEnricher: regexEnricher,
 	}
 	// import raw data table
-	// SELECT * FROM _raw_gitlab_api_job INTO OUTFILE "/tmp/_raw_gitlab_api_job.csv" FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n';
+	// SELECT * FROM _raw_gitlab_api_job INTO OUTFILE "/tmp/_raw_gitlab_api_job.csv" FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n';
 	dataflowTester.ImportCsvIntoRawTable("./raw_tables/_raw_gitlab_api_job.csv", "_raw_gitlab_api_job")
 
 	// verify extraction

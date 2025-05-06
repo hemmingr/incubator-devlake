@@ -817,7 +817,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "WITH _build_success_rate as(\r\n  SELECT\r\n    DATE_ADD(date(finished_date), INTERVAL -DAYOFMONTH(date(finished_date))+1 DAY) as time,\r\n    result,\r\n    id\r\n  FROM\r\n    cicd_pipelines\r\n  WHERE\r\n    $__timeFilter(finished_date)\r\n    and id like \"%circleci%\"\r\n    and cicd_scope_id in (${full_name})\r\n  GROUP BY\r\n    time, result, id\r\n)\r\n\r\nSELECT \r\n  date_format(time,'%M %Y') as month,\r\n  1.0 * sum(case when result = 'SUCCESS' then 1 else 0 end)/ count(*) as \"Workflow Success Rate\"\r\nFROM _build_success_rate\r\nGROUP BY 1\r\nORDER BY 1",
+          "rawSql": "WITH _build_success_rate as(\n  SELECT\n    DATE_ADD(date(finished_date), INTERVAL -DAYOFMONTH(date(finished_date))+1 DAY) as time,\n    result,\n    id\n  FROM\n    cicd_pipelines\n  WHERE\n    $__timeFilter(finished_date)\n    and id like \"%circleci%\"\n    and cicd_scope_id in (${full_name})\n  GROUP BY\n    time, result, id\n)\n\r\nSELECT \n  date_format(time,'%M %Y') as month,\n  1.0 * sum(case when result = 'SUCCESS' then 1 else 0 end)/ count(*) as \"Workflow Success Rate\"\r\nFROM _build_success_rate\r\nGROUP BY 1\r\nORDER BY 1",
           "refId": "A",
           "select": [
             [

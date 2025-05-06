@@ -360,7 +360,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "select \r\n  avg(lead_time_minutes/1440) as value\r\nfrom issues i\r\n\tjoin board_issues bi on i.id = bi.issue_id\r\n\tjoin boards b on bi.board_id = b.id\r\n\tjoin project_mapping pm on b.id = pm.row_id\r\nwhere \r\n  pm.project_name in (${project}) and\r\n  i.type in (${type})\r\n  and i.status = 'DONE'\r\n  and i.resolution_date between STR_TO_DATE('$month','%Y-%m-%d') and STR_TO_DATE('$month','%Y-%m-%d') + INTERVAL 1 MONTH;",
+          "rawSql": "select \n  avg(lead_time_minutes/1440) as value\r\nfrom issues i\n\tjoin board_issues bi on i.id = bi.issue_id\n\tjoin boards b on bi.board_id = b.id\n\tjoin project_mapping pm on b.id = pm.row_id\r\nwhere \n  pm.project_name in (${project}) and\n  i.type in (${type})\n  and i.status = 'DONE'\n  and i.resolution_date between STR_TO_DATE('$month','%Y-%m-%d') and STR_TO_DATE('$month','%Y-%m-%d') + INTERVAL 1 MONTH;",
           "refId": "A",
           "select": [
             [
