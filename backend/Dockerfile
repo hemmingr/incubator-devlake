@@ -90,6 +90,7 @@ ARG TAG=
 ARG SHA=
 ARG GO_PLUGINS=
 
+
 RUN --mount=type=cache,target=/root/.cache/go-build \
     if [ "$TARGETPLATFORM" = "linux/arm64" ] ; then \
         ln -s /usr/local/deps/aarch64 /usr/local/deps/target && \

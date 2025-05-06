@@ -1,19 +1,5 @@
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-version: "3"
+# docker-compose.dev.yml (Aligned with DevLake docs, focusing on backend build)
+version: "3.8" # Version is fine, even if obsolete warning appears
 services:
   mysql:
     image: mysql:8
@@ -28,106 +14,84 @@ services:
       MYSQL_USER: merico
       MYSQL_PASSWORD: merico
       TZ: UTC
-    command: --character-set-server=utf8mb4
-      --collation-server=utf8mb4_bin
-      --skip-log-bin
-
-  postgres:
-    image: postgres:14.2
-    volumes:
-      - postgres-storage:/var/lib/postgresql
-    restart: always
-    ports:
-      - 5432:5432
-    environment:
-      POSTGRES_DB: lake
-      POSTGRES_USER: merico
-      POSTGRES_PASSWORD: merico
-      TZ: UTC
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --skip-log-bin
+    networks:
+      - devlake-net
 
   grafana:
-    image: devlake.docker.scarf.sh/apache/devlake-dashboard:latest
-    build:
-      context: grafana/
+    image: grafana/grafana:9.5.5
     ports:
       - 3002:3000
     volumes:
       - grafana-storage:/var/lib/grafana
     environment:
-      GF_SERVER_ROOT_URL: "http://localhost:4000/grafana"
-      GF_USERS_DEFAULT_THEME: "light"
-      MYSQL_URL: mysql:3306
-      MYSQL_DATABASE: lake
-      MYSQL_USER: merico
-      MYSQL_PASSWORD: merico
-      TZ: UTC
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
+      - GF_SERVER_ROOT_URL=http://localhost:3002
+      - TZ=UTC
     restart: always
     depends_on:
       - mysql
+    networks:
+      - devlake-net
 
-  devlake:
-    image: devlake.docker.scarf.sh/apache/devlake:latest
+  devlake: # Backend
     build:
       context: backend
       args:
         HTTPS_PROXY: "${HTTPS_PROXY}"
         GOPROXY: "${GOPROXY}"
+    volumes:
+      - ./backend:/app # Mount source code as per docs
+      - go-modules:/go/pkg/mod
+      - devlake-log:/app/logs
     ports:
       - 8080:8080
-    restart: always
-    volumes:
-      - devlake-log:/app/logs
+    restart: on-failure
     env_file:
       - ./.env
     environment:
-      LOGGING_DIR: /app/logs
-      TZ: UTC
-      # LOGOUT_URI: https://xxx.amazoncognito.com/logout?client_id=yyy&logout_uri=http%3A%2F%2Flocalhost%3A4180%2Foauth2%2Fsign_out
+      - DB_URL=mysql://merico:merico@mysql:3306/lake?charset=utf8mb4&parseTime=True&loc=UTC
+      - LOGGING_DIR=/app/logs
+      - GIN_MODE=debug
+      - TZ=UTC
     depends_on:
       - mysql
+    networks:
+      - devlake-net
+    command: tail -f /dev/null # Keep alive for exec + 'make run' / 'air'
 
-  config-ui:
-    image: devlake.docker.scarf.sh/apache/devlake-config-ui:latest
+  config-ui: # Frontend
+    # Use the build context as per DevLake's original docker-compose-dev.yml
+    # The Dockerfile in config-ui/ SHOULD produce an image capable of dev
     build:
       context: "config-ui"
+    volumes:
+      - ./config-ui:/app # Mount source code as per docs
+      - /app/node_modules # Isolate node_modules
     ports:
-      - 4000:4000
+      - 4000:4000 # Assuming Vite is configured for port 4000
+    restart: on-failure
     env_file:
       - ./.env
     environment:
-      DEVLAKE_ENDPOINT: devlake:8080
-      GRAFANA_ENDPOINT: grafana:3000
-      TZ: UTC
-      #ADMIN_USER: devlake
-      #ADMIN_PASS: letsdivein
+      - DEVLAKE_ENDPOINT=http://localhost:8080 # For browser access to API
+      - GRAFANA_ENDPOINT=http://localhost:3002 # For browser access to Grafana
+      - NODE_ENV=development
+      - TZ=UTC
     depends_on:
       - devlake
-
-  authproxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:v7.4.0-amd64
-    network_mode: "host"
-    ports:
-      - 4180:4180
-    env_file:
-      - ./.env
-    # environment:
-    #   OAUTH2_PROXY_PROVIDER: oidc
-    #   OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: my provider
-    #   OAUTH2_PROXY_COOKIE_SECRET:
-    #   OAUTH2_PROXY_COOKIE_DOMAINS: localhost:4180
-    #   OAUTH2_PROXY_COOKIE_SECURE: 'false'
-    #   OAUTH2_PROXY_EMAIL_DOMAINS: *
-    #   OAUTH2_PROXY_OIDC_ISSUER_URL:
-    #   OAUTH2_PROXY_OIDC_JWKS_URL:
-    #   OAUTH2_PROXY_CLIENT_ID:
-    #   OAUTH2_PROXY_CLIENT_SECRET:
-    #   OAUTH2_PROXY_UPSTREAMS: http://localhost:4000
-    #   OAUTH2_PROXY_HTTP_ADDRESS: http://0.0.0.0:4180
-    #   OAUTH2_PROXY_REVERSE_PROXY: 'true'
-    #   OAUTH2_PROXY_SKIP_AUTH_ROUTES: ^/grafana.*
+    networks:
+      - devlake-net
+    # Command to run dev server - will be executed AFTER image is built
+    # and AFTER volumes are mounted.
+    command: sh -c "yarn install && yarn start"
 
 volumes:
   mysql-storage:
   grafana-storage:
-  postgres-storage:
   devlake-log:
+  go-modules:
+
+networks:
+  devlake-net:
