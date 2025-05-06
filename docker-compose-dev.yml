@@ -61,31 +61,33 @@ services:
       - devlake-net
     command: tail -f /dev/null # Keep alive for exec + 'make run' / 'air'
 
-  config-ui: # Frontend
-    # Use the build context as per DevLake's original docker-compose-dev.yml
-    # The Dockerfile in config-ui/ SHOULD produce an image capable of dev
-    build:
-      context: "config-ui"
+  config-ui: # Frontend - Using base Node image for dev
+    image: node:18-bookworm # Match Node version if possible (from config-ui/Dockerfile builder stage)
+    working_dir: /app
     volumes:
-      - ./config-ui:/app # Mount source code as per docs
-      - /app/node_modules # Isolate node_modules
+      - ./config-ui:/app # Mount source code
     ports:
-      - 4000:4000 # Assuming Vite is configured for port 4000
+      - 4000:4000 # Assuming Vite is configured for port 4000 (from package.json "start": "vite")
     restart: on-failure
     env_file:
       - ./.env
     environment:
-      - DEVLAKE_ENDPOINT=http://localhost:8080 # For browser access to API
-      - GRAFANA_ENDPOINT=http://localhost:3002 # For browser access to Grafana
+      - DEVLAKE_ENDPOINT=http://localhost:8080
+      - GRAFANA_ENDPOINT=http://localhost:3002
       - NODE_ENV=development
       - TZ=UTC
+      # Vite dev server usually listens on port 5173 by default.
+      # If 'yarn start' (which runs 'vite') uses 5173 internally,
+      # and you want to access it via host port 4000, change ports mapping:
+      # ports:
+      #  - "4000:5173"
+      # Or, if vite.config.js in config-ui sets server.port = 4000, then "4000:4000" is fine.
+      # Let's assume "4000:4000" based on the original compose file's exposure.
     depends_on:
       - devlake
     networks:
       - devlake-net
-    # Command to run dev server - will be executed AFTER image is built
-    # and AFTER volumes are mounted.
-    command: sh -c "yarn install && yarn start"
+    command: sh -c "yarn install && yarn start" # 'start' is from config-ui/package.json
 
 volumes:
   mysql-storage:
