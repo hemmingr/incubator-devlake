@@ -1,5 +1,4 @@
-# docker-compose.dev.yml (Aligned with DevLake docs, focusing on backend build)
-version: "3.8" # Version is fine, even if obsolete warning appears
+version: "3.8"
 services:
   mysql:
     image: mysql:8
@@ -7,13 +6,13 @@ services:
       - mysql-storage:/var/lib/mysql
     restart: always
     ports:
-      - 3306:3306
+      - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: admin
-      MYSQL_DATABASE: lake
-      MYSQL_USER: merico
-      MYSQL_PASSWORD: merico
-      TZ: UTC
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=lake
+      - MYSQL_USER=merico
+      - MYSQL_PASSWORD=merico
+      - TZ=UTC
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin --skip-log-bin
     networks:
       - devlake-net
@@ -21,7 +20,7 @@ services:
   grafana:
     image: grafana/grafana:9.5.5
     ports:
-      - 3002:3000
+      - "3002:3000"
     volumes:
       - grafana-storage:/var/lib/grafana
     environment:
@@ -35,18 +34,18 @@ services:
     networks:
       - devlake-net
 
-  devlake: # Backend
+  devlake:
     build:
       context: backend
       args:
         HTTPS_PROXY: "${HTTPS_PROXY}"
         GOPROXY: "${GOPROXY}"
     volumes:
-      - ./backend:/app # Mount source code as per docs
+      - ./backend:/app
       - go-modules:/go/pkg/mod
       - devlake-log:/app/logs
     ports:
-      - 8080:8080
+      - "8080:8080"
     restart: on-failure
     env_file:
       - ./.env
@@ -59,15 +58,15 @@ services:
       - mysql
     networks:
       - devlake-net
-    command: tail -f /dev/null # Keep alive for exec + 'make run' / 'air'
+    command: tail -f /dev/null
 
-  config-ui: # Frontend - Using base Node image for dev
-    image: node:18-bookworm # Match Node version if possible (from config-ui/Dockerfile builder stage)
+  config-ui:
+    image: node:18-bookworm
     working_dir: /app
     volumes:
-      - ./config-ui:/app # Mount source code
+      - ./config-ui:/app
     ports:
-      - 4000:4000 # Assuming Vite is configured for port 4000 (from package.json "start": "vite")
+      - "4000:4000"
     restart: on-failure
     env_file:
       - ./.env
@@ -76,18 +75,11 @@ services:
       - GRAFANA_ENDPOINT=http://localhost:3002
       - NODE_ENV=development
       - TZ=UTC
-      # Vite dev server usually listens on port 5173 by default.
-      # If 'yarn start' (which runs 'vite') uses 5173 internally,
-      # and you want to access it via host port 4000, change ports mapping:
-      # ports:
-      #  - "4000:5173"
-      # Or, if vite.config.js in config-ui sets server.port = 4000, then "4000:4000" is fine.
-      # Let's assume "4000:4000" based on the original compose file's exposure.
     depends_on:
       - devlake
     networks:
       - devlake-net
-    command: sh -c "yarn install && yarn start" # 'start' is from config-ui/package.json
+    command: sh -c "yarn install && yarn start"
 
 volumes:
   mysql-storage:
