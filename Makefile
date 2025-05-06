@@ -15,6 +15,7 @@
 #
 # NOTE: you have to use tabs in this file for make. Not spaces.
 # https://stackoverflow.com/questions/920413/make-error-missing-separator
+#
 # https://tutorialedge.net/golang/makefiles-for-go-developers/
 
 SHA ?= $(shell if [ -d .git ]; then git show -s --format=%h; else echo "unknown_sha"; fi)
