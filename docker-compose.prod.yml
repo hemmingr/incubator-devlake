@@ -1,0 +1,94 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: lake
+      MYSQL_USER: merico
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      TZ: UTC
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - devlake_prod_net
+
+  grafana:
+    image: grafana/grafana:9.5.5
+    restart: always
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GF_SECURITY_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GF_SECURITY_ADMIN_PASSWORD:-admin}"
+      GF_SERVER_ROOT_URL: "${GF_SERVER_ROOT_URL:-http://localhost:${GRAFANA_PORT:-3000}}"
+      TZ: UTC
+    volumes:
+      - grafana_prod_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - devlake_prod_net
+
+  devlake:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        TAG: "${APP_VERSION}" 
+        SHA: "${GIT_COMMIT_SHA}" 
+        DEVLAKE_PLUGINS: "${DEVLAKE_PLUGINS:-}"
+        GOPROXY: "${GOPROXY:-}"
+        HTTPS_PROXY: "${HTTPS_PROXY:-}"
+    image: ${DOCKER_REGISTRY}/devlake-backend-custom:${APP_VERSION} 
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      DB_URL: "mysql://merico:${MYSQL_PASSWORD}@mysql:3306/lake?charset=utf8mb4&parseTime=True&loc=UTC"
+      GIN_MODE: "release"
+      ENCRYPTION_SECRET: "${ENCRYPTION_SECRET}"
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - devlake_prod_net
+
+  config-ui:
+    build:
+      context: ./config-ui
+      dockerfile: Dockerfile
+      args: 
+        APP_VERSION: "${APP_VERSION}"
+        GIT_COMMIT_SHA: "${GIT_COMMIT_SHA}"
+    image: ${DOCKER_REGISTRY}/devlake-frontend-custom:${APP_VERSION}
+    restart: always
+    ports:
+      - "${CONFIG_UI_PORT:-4000}:4000"
+    environment:
+      TZ: UTC
+      DEVLAKE_ENDPOINT: "http://devlake:${BACKEND_INTERNAL_PORT:-8080}"
+      GRAFANA_ENDPOINT: "http://grafana:${GRAFANA_INTERNAL_PORT:-3000}"
+    depends_on:
+      - devlake
+    networks:
+      - devlake_prod_net
+
+volumes:
+  mysql_prod_data:
+  grafana_prod_data:
+
+networks:
+  devlake_prod_net:

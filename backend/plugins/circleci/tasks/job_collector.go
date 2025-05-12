@@ -60,7 +60,8 @@ func CollectJobs(taskCtx plugin.SubTaskContext) errors.Error {
 				}
 
 				if isIncremental {
-					clauses = append(clauses, dal.Where("created_date > ?", createdAfter))
+					//clauses = append(clauses, dal.Where("created_date > ?", createdAfter))
+					clauses = append(clauses, dal.Where("created_at > ?", createdAfter)) //hemming
 				}
 
 				db := taskCtx.GetDal()

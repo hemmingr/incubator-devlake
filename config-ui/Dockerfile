@@ -22,7 +22,8 @@
 #
 #While incubation status is not necessarily a reflection of the completeness or stability of the code,
 #it does indicate that the project has yet to be fully endorsed by the ASF.
-
+ARG APP_VERSION="latest"
+ARG GIT_COMMIT_SHA="unknown"
 FROM node:18-bookworm-slim as builder
 
 WORKDIR /home/node/code
