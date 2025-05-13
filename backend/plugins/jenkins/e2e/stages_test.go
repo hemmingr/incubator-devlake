@@ -45,7 +45,7 @@ func TestJenkinsStagesDataFlow(t *testing.T) {
 	}
 
 	// import raw data table
-	// SELECT * FROM _raw_jenkins_api_stages INTO OUTFILE "/tmp/_raw_jenkins_api_stages.csv" FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n';
+	// SELECT * FROM _raw_jenkins_api_stages INTO OUTFILE "/tmp/_raw_jenkins_api_stages.csv" FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n';
 	dataflowTester.ImportCsvIntoRawTable("./raw_tables/_raw_jenkins_api_stages.csv", "_raw_jenkins_api_stages")
 	dataflowTester.FlushTabler(&models.JenkinsBuild{})
 	dataflowTester.ImportCsvIntoTabler("./raw_tables/_tool_jenkins_builds_for_stages.csv", models.JenkinsBuild{})

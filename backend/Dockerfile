@@ -92,6 +92,7 @@ ARG TAG=
 ARG SHA=
 ARG GO_PLUGINS=
 
+
 RUN --mount=type=cache,target=/root/.cache/go-build \
     if [ "$TARGETPLATFORM" = "linux/arm64" ] ; then \
         ln -s /usr/local/deps/aarch64 /usr/local/deps/target && \
@@ -105,6 +106,12 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     export PKG_CONFIG_PATH=/usr/local/deps/target/lib/pkgconfig && \
     export CGO_ENABLED=1 &&\
     DEVLAKE_PLUGINS="$GO_PLUGINS" make all
+
+    RUN echo "--- Contents of /app after make all ---" && ls -la /app
+    RUN echo "--- Contents of /app/bin after make all ---" && ls -la /app/bin || echo "ERROR: /app/bin does not exist or ls failed after make all"
+    RUN echo "--- Checking for /app/bin/lake after make all ---" && \
+        test -f /app/bin/lake && echo "FOUND /app/bin/lake" && ls -l /app/bin/lake || \
+        (echo "ERROR: /app/bin/lake NOT FOUND after make all" && exit 1) # Force fail if not found
 
 # remove symlink in lib, we will recreate in final image
 RUN cd /usr/local/deps/target/lib && \

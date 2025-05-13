@@ -7,6 +7,7 @@ services:
     restart: always
     ports:
       - "3306:3306"
+      - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=admin
       - MYSQL_DATABASE=lake
@@ -25,11 +26,17 @@ services:
 
   grafana:
     image: grafana/grafana:9.5.5
+    image: grafana/grafana:9.5.5
     ports:
+      - "3002:3000"
       - "3002:3000"
     volumes:
       - grafana-storage:/var/lib/grafana
     environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
+      - GF_SERVER_ROOT_URL=http://localhost:3002
+      - TZ=UTC
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=password
       - GF_SERVER_ROOT_URL=http://localhost:3002
@@ -64,6 +71,9 @@ services:
       - ./backend/swagger-stub.go:/app/swagger-stub.go
       - go-modules:/go/pkg/mod
       - devlake-log:/app/logs
+    ports:
+      - "8080:8080"
+    restart: on-failure
     env_file:
       - ./.env
     environment:
@@ -85,7 +95,13 @@ services:
     working_dir: /app
     volumes:
       - ./config-ui:/app
+    image: node:18-bookworm
+    working_dir: /app
+    volumes:
+      - ./config-ui:/app
     ports:
+      - "4000:4000"
+    restart: on-failure
       - "4000:4000"
     restart: on-failure
     env_file:
@@ -100,11 +116,18 @@ services:
     networks:
       - devlake-net
     command: sh -c "yarn install && yarn start"
+    networks:
+      - devlake-net
+    command: sh -c "yarn install && yarn start"
 
 volumes:
   mysql-storage:
   grafana-storage:
   devlake-log:
+  go-modules:
+
+networks:
+  devlake-net:
   go-modules:
 
 networks:

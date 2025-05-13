@@ -347,7 +347,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "with _build_success_rate as(\r\n  SELECT\r\n    DATE_ADD(date(start_time), INTERVAL -$interval(date(start_time))+1 DAY) as time,\r\n    result\r\n  FROM\r\n    jenkins_builds\r\n  WHERE\r\n    $__timeFilter(start_time)\r\n)\r\n\r\nSELECT \r\n  timestamp(time) as time,\r\n  1.0 * sum(case when result = 'SUCCESS' then 1 else 0 end)/ count(*) as \"Build Success Rate\"\r\nFROM _build_success_rate\r\ngroup by 1\r\norder by 1",
+          "rawSql": "with _build_success_rate as(\n  SELECT\n    DATE_ADD(date(start_time), INTERVAL -$interval(date(start_time))+1 DAY) as time,\n    result\n  FROM\n    jenkins_builds\n  WHERE\n    $__timeFilter(start_time)\n)\n\r\nSELECT \n  timestamp(time) as time,\n  1.0 * sum(case when result = 'SUCCESS' then 1 else 0 end)/ count(*) as \"Build Success Rate\"\r\nFROM _build_success_rate\r\ngroup by 1\r\norder by 1",
           "refId": "A",
           "select": [
             [
