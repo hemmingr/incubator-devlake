@@ -79,6 +79,7 @@ echo "ECR authentication complete."
 echo "--- Building Docker images via docker-compose ---"
 # docker-compose build will use DOCKER_REGISTRY and APP_VERSION from environment
 # to name the images as defined in the 'image:' fields of docker-compose.prod.yml
+#
 if ! docker-compose -f docker-compose.prod.yml build --no-cache; then
     echo "ERROR: Docker compose build failed."
     exit 1
