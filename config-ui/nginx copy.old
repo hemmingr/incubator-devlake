@@ -1,28 +1,12 @@
 server {
-  ${LISTENER}
+${LISTENER}
   server_name localhost;
   absolute_redirect off;
   client_max_body_size 20m;
 
-  ${SERVER_CONF}
+${SERVER_CONF}
 
   root /usr/share/nginx/html;
-
-  location = /health {
-    auth_basic off;
-    return 200 "OK";
-    access_log off;
-  }
-
-  location /health/ {
-    auth_basic off;
-    return 200;
-  }
-
-  location /config/ {
-    rewrite ^/config/(.*)$ /$1 break;
-    try_files $uri $uri/ /index.html =404;
-  }
 
   location = / {
     add_header Cache-Control no-cache;
@@ -34,48 +18,60 @@ server {
     try_files $uri /index.html;
   }
 
+  location /api/ {
+    resolver ${DNS} valid=${DNS_VALID};
+    resolver_timeout 3s;
+    set $target "${DEVLAKE_ENDPOINT}";
+    rewrite ^ $request_uri;
+    rewrite ^/api/(.*) $1 break;
+    return 400;
+    proxy_send_timeout 60s;
+    proxy_read_timeout 60s;
+    proxy_pass ${DEVLAKE_ENDPOINT_PROTO}://$target/$uri;
+    proxy_http_version 1.1;
+    proxy_set_header   "Connection" "";
+  }
+
   location /api/rest/ {
     auth_basic off;
     resolver ${DNS} valid=${DNS_VALID};
     resolver_timeout 3s;
     set $target "${DEVLAKE_ENDPOINT}";
-    rewrite ^/api/rest/(.*)$ /$1 break;
+    rewrite /api/(.*) /$1  break;
     proxy_send_timeout 60s;
     proxy_read_timeout 60s;
     proxy_pass ${DEVLAKE_ENDPOINT_PROTO}://$target;
     proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header Host $target;
-  }
-
-  location /api/ {
-    resolver ${DNS} valid=${DNS_VALID};
-    resolver_timeout 3s;
-    set $target "${DEVLAKE_ENDPOINT}";
-    rewrite ^/api/(.*)$ /$1 break;
-    proxy_send_timeout 60s;
-    proxy_read_timeout 60s;
-    proxy_pass ${DEVLAKE_ENDPOINT_PROTO}://$target;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header Host $target;
+    proxy_set_header   "Connection" "";
   }
 
   location /grafana/ {
     auth_basic off;
-    set $external_grafana "${USE_EXTERNAL_GRAFANA}";
-    if ($external_grafana = "true") {
+    set $external "${USE_EXTERNAL_GRAFANA}";
+    if ($external = "true") {
       return 302 "${GRAFANA_ENDPOINT}";
     }
     resolver ${DNS} valid=${DNS_VALID};
     resolver_timeout 3s;
-    set $target_grafana "${GRAFANA_ENDPOINT}";
-    rewrite ^/grafana/(.*)$ /$1 break;
+    set $target "${GRAFANA_ENDPOINT}";
+    proxy_set_header Host $http_host;
+    proxy_set_header Authorization "";
+    proxy_set_header X-Forwarded-Access-Token "${cookie_access_token}";
     proxy_send_timeout 60s;
     proxy_read_timeout 60s;
-    proxy_pass ${GRAFANA_ENDPOINT_PROTO}://$target_grafana;
+    proxy_pass ${GRAFANA_ENDPOINT_PROTO}://$target;
     proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header Host $target_grafana;
+    proxy_set_header   "Connection" "";
   }
+
+  location /health/ {
+    auth_basic off;
+    return 200;
+  }
+
+  location /health {
+    auth_basic off;
+    return 200;
+  }
+
 }

@@ -23,6 +23,7 @@ import svgr from 'vite-plugin-svgr';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/config/',
   plugins: [react(), svgr()],
 
   envPrefix: 'DEVLAKE_',
